@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>Quick QR Batch — Pengalihan</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f7faf9;color:#142b2a}
+    body{display:grid;min-height:100vh;place-items:center;margin:0;padding:20px;box-sizing:border-box}
+    main{background:white;border:1px solid #e0e9e4;border-radius:18px;max-width:430px;width:100%;box-sizing:border-box;padding:28px;box-shadow:0 10px 36px #122d2a0e;text-align:center}
+    .mark{height:46px;width:46px;display:grid;place-items:center;margin:0 auto 12px;background:#d8eee4;border-radius:14px;color:#136745;font-size:24px}
+    h1{font-size:20px;margin:6px 0 8px}.muted{color:#526963;line-height:1.5;font-size:14px}
+    a{color:#116c4d;word-break:break-word} .btn{display:inline-block;padding:12px 18px;background:#14674a;color:white;border-radius:11px;text-decoration:none;font-weight:600}
+    .hidden{display:none} footer{margin-top:25px;font-size:11px;color:#7c9088}
+  </style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true">↗</div>
+  <h1 id="heading">Menghubungkan QR…</h1>
+  <p id="message" class="muted" role="status">Memeriksa tujuan tautan terbaru.</p>
+  <p id="action" class="hidden"><a class="btn" id="target" rel="noreferrer noopener">Buka tautan</a></p>
+  <footer>Quick QR Batch · Tanpa iklan atau pelacak pihak ketiga</footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const title = document.getElementById('heading');
+  const msg = document.getElementById('message');
+  const action = document.getElementById('action');
+  const button = document.getElementById('target');
+  const show = (t,m) => { title.textContent=t; msg.textContent=m; };
+  const params = new URLSearchParams(location.search);
+  const project = params.get('p') || '';
+  const code = params.get('c') || '';
+  if (!/^[a-z0-9][a-z0-9_-]{0,39}$/.test(project) || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$/.test(code)) {
+    show('QR belum terdaftar','Periksa kembali kode proyek dan kartu pada tautan QR.');
+    return;
+  }
+  const key = project + '/' + code;
+  const dataFile = './data/links.json?v=' + encodeURIComponent(Date.now());
+  fetch(dataFile, {cache:'no-store'})
+    .then(r => {if (!r.ok) throw new Error('HTTP '+r.status);return r.json();})
+    .then(data => {
+      const entry = data.items && data.items[key];
+      if (!entry || entry.disabled || !entry.url) {
+        show('Tujuan belum tersedia','Alamat QR tetap berlaku. Pengelola belum menetapkan link aktif untuk '+key+'.');
+        return;
+      }
+      let parsed;
+      try { parsed = new URL(entry.url); } catch (_) {throw new Error('URL tidak valid');}
+      if (parsed.protocol !== 'https:') throw new Error('URL harus HTTPS');
+      button.href=parsed.href;
+      action.classList.remove('hidden');
+      show('Membuka '+(entry.title || 'tautan')+'…','Jika tidak berpindah otomatis, tekan tombol Buka tautan.');
+      location.replace(parsed.href);
+    })
+    .catch(_ => show('Koneksi belum berhasil','Halaman QR tidak dapat membaca daftar tautan saat ini. Coba kembali atau hubungi pengelola.'));
+})();
+</script>
+</body>
+</html>
